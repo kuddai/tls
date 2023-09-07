@@ -2,7 +2,7 @@
 # generate typescript definition file
 # Use ERROR_ON_UNDEFINED_SYMBOLS=0 to use em::val value array as --embind-emit-ts can't
 # generate typescript definition for it.
-dsocker run \
+docker run \
   --rm \
   -v $(pwd):/src \
   -u $(id -u):$(id -g) \

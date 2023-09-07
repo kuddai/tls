@@ -5,6 +5,35 @@
 
 namespace em = ::emscripten;
 
+namespace emscripten {
+namespace internal {
+
+template <typename T, typename Allocator>
+struct BindingType<std::vector<T, Allocator>> {
+    using ValBinding = BindingType<val>;
+    using WireType = ValBinding::WireType;
+
+    static WireType toWireType(const std::vector<T, Allocator> &vec) {
+        return ValBinding::toWireType(val::array(vec));
+    }
+
+    static std::vector<T, Allocator> fromWireType(WireType value) {
+        return vecFromJSArray<T>(ValBinding::fromWireType(value));
+    }
+};
+
+template <typename T>
+struct TypeID<T,
+              typename std::enable_if_t<std::is_same<
+                  typename Canonicalized<T>::type,
+                  std::vector<typename Canonicalized<T>::type::value_type,
+                              typename Canonicalized<T>::type::allocator_type>>::value>> {
+    static constexpr TYPEID get() { return TypeID<val>::get(); }
+};
+
+}  // namespace internal
+}  // namespace emscripten
+
 enum class Color {
   NONE = 0,
   RED,
@@ -30,14 +59,18 @@ static Color GetRed() noexcept { return Color::RED; }
 
 static Bulb GetBulb() noexcept { return Bulb{}; }
 
-static em::val GetBulbs() noexcept {
-  std::vector<Bulb> arr = {
-    {0, 0, false, Arrow::NONE, Color::NONE},
-    {1, 1, true, Arrow::LEFT, Color::RED},
-    {2, 2, false, Arrow::RIGHT, Color::GREEN},
-    {3, 3, true, Arrow::NONE, Color::YELLOW},
-  };
-  return em::val::array(arr);
+static std::vector<Bulb> GetBulbs(std::vector<int> pos_x) noexcept {
+  std::vector<Bulb> arr; 
+  for (auto x : pos_x) {
+    arr.push_back(Bulb{
+        .x = static_cast<float>(x),
+        .y = static_cast<float>(x),
+        .blinking = true,
+        .arrow = Arrow::LEFT,
+        .color = Color::RED
+    });
+  }
+  return arr;
 }
 
 EMSCRIPTEN_BINDINGS(tls) {
